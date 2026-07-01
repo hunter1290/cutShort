@@ -20,7 +20,17 @@ public interface UrlRepository extends JpaRepository<Url, String> {
 
     List<Url> findByUserAndActiveTrueOrderByCreatedAtDesc(User user);
 
+    List<Url> findByUserOrderByCreatedAtDesc(User user);
+
+    long countByUser(User user);
+
     @Modifying
     @Query("UPDATE Url u SET u.clickCount = u.clickCount + 1 WHERE u.id = :id")
     void incrementClickCount(@Param("id") String id);
+
+    @Query("SELECT COALESCE(SUM(u.clickCount), 0) FROM Url u WHERE u.user = :user")
+    long sumClickCountByUser(@Param("user") User user);
+
+    @Query("SELECT COALESCE(SUM(u.clickCount), 0) FROM Url u")
+    long sumClickCount();
 }

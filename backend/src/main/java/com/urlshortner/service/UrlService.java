@@ -74,6 +74,14 @@ public class UrlService {
                 .toList();
     }
 
+    /** All links for a user, including inactive/deleted ones — used by the admin dashboard. */
+    public List<UrlResponse> getAllUrlsForUserAdmin(User user) {
+        return urlRepository.findByUserOrderByCreatedAtDesc(user)
+                .stream()
+                .map(u -> toResponse(u, true))
+                .toList();
+    }
+
     // ─── Credential-gated: extend expiry ─────────────────────────────────────
 
     @Transactional

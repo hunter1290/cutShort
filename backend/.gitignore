@@ -20,3 +20,7 @@ target/
 
 # Spring Boot
 spring-shell.log
+
+# Local config with secrets (DB creds, JWT secret, admin bootstrap creds)
+# Copy application.yml.example to application.yml and fill in real values.
+src/main/resources/application.yml

@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-type AuthUser = { token: string; email: string; displayName: string };
+type AuthUser = { token: string; email: string; displayName: string; role: string };
 
 type AuthContextValue = {
   user: AuthUser | null;

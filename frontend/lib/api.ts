@@ -24,7 +24,7 @@ async function request<T>(
 
 // ─── Auth ───────────────────────────────────────────────
 
-export type AuthPayload = { token: string; email: string; displayName: string };
+export type AuthPayload = { token: string; email: string; displayName: string; role: string };
 
 export const auth = {
   register: (body: { email: string; password: string; displayName: string }) =>
@@ -34,7 +34,7 @@ export const auth = {
     request<AuthPayload>("/api/auth/login", { method: "POST", body: JSON.stringify(body) }),
 
   me: (token: string) =>
-    request<{ email: string; displayName: string }>("/api/auth/me", {}, token),
+    request<{ email: string; displayName: string; role: string }>("/api/auth/me", {}, token),
 };
 
 // ─── URLs ─────────────────────────────────────────────────────────────────────
@@ -74,4 +74,44 @@ export const urls = {
       method: "PATCH",
       body: JSON.stringify({ newCode }),
     }, token),
+};
+
+// ─── Admin ──────────────────────────────────────────────────────────────────
+
+export type AdminUserSummary = {
+  id: string;
+  email: string;
+  displayName: string;
+  role: string;
+  createdAt: string;
+  urlCount: number;
+  totalClicks: number;
+};
+
+export type AdminUserDetail = AdminUserSummary & {
+  urls: UrlEntry[];
+};
+
+export type AdminStats = {
+  totalUsers: number;
+  totalAdmins: number;
+  totalUrls: number;
+  totalClicks: number;
+};
+
+export const admin = {
+  stats: (token: string) =>
+    request<AdminStats>("/api/admin/stats", {}, token),
+
+  listUsers: (token: string) =>
+    request<AdminUserSummary[]>("/api/admin/users", {}, token),
+
+  getUser: (id: string, token: string) =>
+    request<AdminUserDetail>(`/api/admin/users/${id}`, {}, token),
+
+  deleteUser: (id: string, token: string) =>
+    request<void>(`/api/admin/users/${id}`, { method: "DELETE" }, token),
+
+  promoteUser: (id: string, token: string) =>
+    request<AdminUserSummary>(`/api/admin/users/${id}/promote`, { method: "POST" }, token),
 };

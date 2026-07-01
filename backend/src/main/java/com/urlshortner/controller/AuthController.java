@@ -35,7 +35,8 @@ public class AuthController {
     public ResponseEntity<Map<String, String>> me(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(Map.of(
                 "email", user.getEmail(),
-                "displayName", user.getDisplayName()
+                "displayName", user.getDisplayName(),
+                "role", user.getRole().name()
         ));
     }
 }

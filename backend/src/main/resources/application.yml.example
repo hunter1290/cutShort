@@ -1,3 +1,6 @@
+# Copy this file to application.yml (gitignored) and fill in real values,
+# or just set these as environment variables — every field below reads from
+# one via ${VAR:default}, so env vars always win over the checked-in default.
 spring:
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/urlshortner}
@@ -17,8 +20,12 @@ server:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:local-dev-secret-replace-in-prod-must-be-at-least-256-bits-long-abc123}
+    secret: ${JWT_SECRET:replace-with-a-real-256-bit-secret-before-deploying}
     expiration-ms: 86400000   # 24 h
   base-url: ${BASE_URL:http://localhost:8080}
   frontend-url: ${FRONTEND_URL:http://localhost:3000}
   anonymous-expiry-days: 7   # URLs created without auth expire after 7 days
+  admin:
+    email: ${ADMIN_EMAIL:admin@example.com}
+    password: ${ADMIN_PASSWORD:replace-with-a-real-password}
+    display-name: ${ADMIN_DISPLAY_NAME:Admin}

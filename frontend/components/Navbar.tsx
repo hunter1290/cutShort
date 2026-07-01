@@ -29,6 +29,14 @@ export default function Navbar() {
             >
               Dashboard
             </Link>
+            {user.role === "ADMIN" && (
+              <Link
+                href="/dashboard/admin"
+                className="text-purple-400 hover:text-purple-300 transition-colors"
+              >
+                Admin
+              </Link>
+            )}
             <button
               onClick={handleLogout}
               className="text-zinc-400 hover:text-white transition-colors"
