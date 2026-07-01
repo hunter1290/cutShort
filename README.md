@@ -21,6 +21,16 @@ AI layer for latency observability and short-code suggestions.
 - **Secure by default** — stateless JWT auth, BCrypt password hashing, ownership checks on
   every mutating endpoint, and soft-deletes that preserve click history.
 
+
+<img width="2790" height="1452" alt="image" src="https://github.com/user-attachments/assets/090562bc-d0e9-4e75-b283-1449150f44cd" />
+<img width="2806" height="1454" alt="image" src="https://github.com/user-attachments/assets/c792dd8d-8eaf-41c4-ba5f-d96e9079ac49" />
+<img width="2758" height="1462" alt="image" src="https://github.com/user-attachments/assets/beb984dc-8efd-4112-97e2-b30d0ea01fc4" />
+<img width="2380" height="1356" alt="image" src="https://github.com/user-attachments/assets/7d4d23e8-d7db-4e5a-bffb-80421cd181f6" />
+<img width="2672" height="1558" alt="image" src="https://github.com/user-attachments/assets/2041991b-0a0d-439b-b20c-7071e7ad3397" />
+
+
+  
+
 ## Prerequisites
 
 | Tool | Version |
