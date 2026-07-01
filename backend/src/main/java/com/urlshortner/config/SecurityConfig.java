@@ -38,6 +38,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/{code}").permitAll()
                 // Shortening is open; premium fields are silently ignored for anonymous callers
                 .requestMatchers(HttpMethod.POST, "/api/urls/shorten").permitAll()
+                // AI code suggestions are informational only, same visibility as shortening
+                .requestMatchers(HttpMethod.POST, "/api/urls/suggest-code").permitAll()
                 // Admin dashboard — requires ROLE_ADMIN
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 // Everything else requires a valid JWT

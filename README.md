@@ -1,6 +1,25 @@
-# URL Shortener
+# cutShort
 
-A Bitly-style URL shortener with a Spring Boot backend and Next.js frontend.
+A Bitly-style URL shortener with a Spring Boot backend and Next.js frontend — JWT auth,
+credential-gated premium features, click analytics, an admin dashboard, and a Gemini-powered
+AI layer for latency observability and short-code suggestions.
+
+## Highlights
+
+- **Instant + custom shortening** — anonymous users get a link in one request; signed-in users
+  can pick a custom slug, set an exact expiry, and extend it later.
+- **Click analytics dashboard** — per-link click counts, expiry timelines, and a status
+  breakdown, all computed client-side from the links API (no separate analytics service).
+- **Admin dashboard** — org-wide stats, per-user link/click totals, promote-to-admin, and
+  user removal, gated to `ROLE_ADMIN` with a bootstrap-admin seeding mechanism.
+- **Gemini AI layer** (new):
+  - *Redirect latency insight* — every redirect's latency is tracked in-memory; an admin-only
+    endpoint asks Gemini 2.5 Flash to summarize recent latency health and call out anomalies.
+  - *AI short-code suggestions* — as you paste a URL to shorten, Gemini suggests memorable,
+    URL-safe slugs based on the destination (e.g. `/anthropic-research`) as an alternative to
+    the random 7-character hash.
+- **Secure by default** — stateless JWT auth, BCrypt password hashing, ownership checks on
+  every mutating endpoint, and soft-deletes that preserve click history.
 
 ## Prerequisites
 
@@ -46,6 +65,10 @@ JWT_SECRET=change-me-to-a-random-256-bit-base64-string
 # Service URLs
 BASE_URL=http://localhost:8080
 NEXT_PUBLIC_API_URL=http://localhost:8080
+
+# Gemini (optional) — powers latency insights + AI short-code suggestions.
+# Leave blank to disable both features; nothing else depends on this.
+GEMINI_API_KEY=
 ```
 
 ---
@@ -112,10 +135,12 @@ urlShortner/
 | `POST` | `/api/auth/register` | No | Register a new account |
 | `POST` | `/api/auth/login` | No | Login, returns JWT |
 | `POST` | `/api/urls/shorten` | Optional | Shorten a URL |
+| `POST` | `/api/urls/suggest-code` | No | AI (Gemini) short-code suggestions for a destination URL |
 | `GET` | `/api/urls` | Yes | List your URLs |
 | `DELETE` | `/api/urls/{id}` | Yes | Delete a URL |
 | `PATCH` | `/api/urls/{id}/extend` | Yes | Extend expiry |
 | `PATCH` | `/api/urls/{id}/code` | Yes | Change short code |
+| `GET` | `/api/admin/latency-insight` | Admin | AI (Gemini) summary of recent redirect latency |
 | `GET` | `/{shortCode}` | No | Redirect to original URL |
 
 > Anonymous URLs expire after **7 days**. Authenticated users can set a custom expiry or none at all.
@@ -127,4 +152,5 @@ urlShortner/
 - The backend reads env vars with fallback defaults, so the app runs without a `.env` file in local dev (using the defaults from `application.yml`).
 - JWT tokens expire after **24 hours**.
 - Authenticated requests require the header: `Authorization: Bearer <token>`
-# CutShort
+- `GEMINI_API_KEY` is optional — without it, `suggest-code` returns an empty suggestion list
+  and `latency-insight` returns stats with an "unavailable" summary instead of erroring.

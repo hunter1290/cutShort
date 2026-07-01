@@ -3,8 +3,10 @@ package com.urlshortner.controller;
 import com.urlshortner.dto.AdminStatsResponse;
 import com.urlshortner.dto.AdminUserDetailResponse;
 import com.urlshortner.dto.AdminUserSummaryResponse;
+import com.urlshortner.dto.LatencyInsightResponse;
 import com.urlshortner.entity.User;
 import com.urlshortner.service.AdminService;
+import com.urlshortner.service.LatencyInsightService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,10 +24,17 @@ import java.util.List;
 public class AdminController {
 
     private final AdminService adminService;
+    private final LatencyInsightService latencyInsightService;
 
     @GetMapping("/stats")
     public ResponseEntity<AdminStatsResponse> stats() {
         return ResponseEntity.ok(adminService.getStats());
+    }
+
+    /** AI-generated (Gemini) health summary of recent redirect latency. */
+    @GetMapping("/latency-insight")
+    public ResponseEntity<LatencyInsightResponse> latencyInsight() {
+        return ResponseEntity.ok(latencyInsightService.generateInsight());
     }
 
     @GetMapping("/users")

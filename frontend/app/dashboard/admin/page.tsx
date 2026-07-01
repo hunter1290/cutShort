@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { admin, type AdminUserSummary, type AdminUserDetail, type AdminStats } from "@/lib/api";
+import { admin, type AdminUserSummary, type AdminUserDetail, type AdminStats, type LatencyInsight } from "@/lib/api";
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
 
@@ -12,6 +12,50 @@ function StatCard({ label, value, color = "text-white" }: { label: string; value
     <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
       <p className="text-xs text-zinc-500 mb-1">{label}</p>
       <p className={`text-2xl font-bold ${color}`}>{value}</p>
+    </div>
+  );
+}
+
+// ── Latency insight panel ────────────────────────────────────────────────────
+
+function LatencyInsightPanel({
+  insight, loading, onRefresh, refreshing,
+}: { insight: LatencyInsight | null; loading: boolean; onRefresh: () => void; refreshing: boolean }) {
+  return (
+    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-1.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-violet-400">
+            <path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8" />
+          </svg>
+          <p className="text-sm font-semibold text-white">Redirect latency — Gemini insight</p>
+        </div>
+        <button
+          onClick={onRefresh}
+          disabled={refreshing}
+          className="text-xs border border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-white disabled:opacity-50 px-3 py-1 rounded-md transition-colors"
+        >
+          {refreshing ? "Refreshing…" : "Refresh"}
+        </button>
+      </div>
+
+      {loading ? (
+        <p className="text-xs text-zinc-500">Loading latency stats…</p>
+      ) : !insight ? (
+        <p className="text-xs text-zinc-500">Could not load latency insight.</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            <StatCard label="Samples" value={insight.stats.sampleCount} />
+            <StatCard label="Avg latency" value={`${insight.stats.avgMs}ms`} color="text-blue-400" />
+            <StatCard label="P95 latency" value={`${insight.stats.p95Ms}ms`} color="text-yellow-400" />
+            <StatCard label="Max latency" value={`${insight.stats.maxMs}ms`} color="text-orange-400" />
+          </div>
+          <div className="bg-violet-400/5 border border-violet-400/20 rounded-lg p-3">
+            <p className="text-xs text-violet-200 leading-relaxed whitespace-pre-line">{insight.aiSummary}</p>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -155,6 +199,10 @@ export default function AdminDashboardPage() {
   const [promoting, setPromoting] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
+  const [latency, setLatency] = useState<LatencyInsight | null>(null);
+  const [latencyLoading, setLatencyLoading] = useState(true);
+  const [latencyRefreshing, setLatencyRefreshing] = useState(false);
+
   const loadOverview = useCallback(async () => {
     if (!user) return;
     try {
@@ -168,13 +216,33 @@ export default function AdminDashboardPage() {
     }
   }, [user]);
 
+  const loadLatency = useCallback(async () => {
+    if (!user) return;
+    try {
+      setLatency(await admin.latencyInsight(user.token));
+    } catch {
+      setLatency(null);
+    } finally {
+      setLatencyLoading(false);
+      setLatencyRefreshing(false);
+    }
+  }, [user]);
+
   useEffect(() => {
     if (!authLoading && (!user || user.role !== "ADMIN")) router.replace("/dashboard");
   }, [authLoading, user, router]);
 
   useEffect(() => {
-    if (user && user.role === "ADMIN") loadOverview();
-  }, [user, loadOverview]);
+    if (user && user.role === "ADMIN") {
+      loadOverview();
+      loadLatency();
+    }
+  }, [user, loadOverview, loadLatency]);
+
+  function refreshLatency() {
+    setLatencyRefreshing(true);
+    loadLatency();
+  }
 
   async function selectUser(id: string) {
     if (!user) return;
@@ -235,6 +303,13 @@ export default function AdminDashboardPage() {
       <h1 className="text-2xl font-bold tracking-tight mb-6">Admin dashboard</h1>
 
       {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
+
+      <LatencyInsightPanel
+        insight={latency}
+        loading={latencyLoading}
+        refreshing={latencyRefreshing}
+        onRefresh={refreshLatency}
+      />
 
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">

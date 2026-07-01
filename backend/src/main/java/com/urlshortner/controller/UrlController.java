@@ -3,8 +3,11 @@ package com.urlshortner.controller;
 import com.urlshortner.dto.ChangeCodeRequest;
 import com.urlshortner.dto.ExtendExpiryRequest;
 import com.urlshortner.dto.ShortenRequest;
+import com.urlshortner.dto.SuggestCodeRequest;
+import com.urlshortner.dto.SuggestCodeResponse;
 import com.urlshortner.dto.UrlResponse;
 import com.urlshortner.entity.User;
+import com.urlshortner.service.CodeSuggestionService;
 import com.urlshortner.service.UrlService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +25,7 @@ import java.util.List;
 public class UrlController {
 
     private final UrlService urlService;
+    private final CodeSuggestionService codeSuggestionService;
 
     /**
      * Open to all. Anonymous callers may not use customCode or expiresAt —
@@ -34,6 +38,18 @@ public class UrlController {
     ) {
         User caller = resolveUser(authentication);
         return ResponseEntity.status(HttpStatus.CREATED).body(urlService.shorten(req, caller));
+    }
+
+    /**
+     * AI-suggested (Gemini) memorable short codes for a destination URL, as an alternative
+     * to the random hash — open to all, same as shortening itself. Returns an empty list
+     * (never an error) if Gemini is unavailable.
+     */
+    @PostMapping("/suggest-code")
+    public ResponseEntity<SuggestCodeResponse> suggestCode(@Valid @RequestBody SuggestCodeRequest req) {
+        return ResponseEntity.ok(SuggestCodeResponse.builder()
+                .suggestions(codeSuggestionService.suggest(req.getOriginalUrl()))
+                .build());
     }
 
     /** List the authenticated user's own links. */

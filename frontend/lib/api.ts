@@ -74,6 +74,12 @@ export const urls = {
       method: "PATCH",
       body: JSON.stringify({ newCode }),
     }, token),
+
+  suggestCode: (originalUrl: string) =>
+    request<{ suggestions: string[] }>("/api/urls/suggest-code", {
+      method: "POST",
+      body: JSON.stringify({ originalUrl }),
+    }),
 };
 
 // ─── Admin ──────────────────────────────────────────────────────────────────
@@ -99,9 +105,25 @@ export type AdminStats = {
   totalClicks: number;
 };
 
+export type LatencyStats = {
+  sampleCount: number;
+  avgMs: number;
+  minMs: number;
+  maxMs: number;
+  p95Ms: number;
+};
+
+export type LatencyInsight = {
+  stats: LatencyStats;
+  aiSummary: string;
+};
+
 export const admin = {
   stats: (token: string) =>
     request<AdminStats>("/api/admin/stats", {}, token),
+
+  latencyInsight: (token: string) =>
+    request<LatencyInsight>("/api/admin/latency-insight", {}, token),
 
   listUsers: (token: string) =>
     request<AdminUserSummary[]>("/api/admin/users", {}, token),

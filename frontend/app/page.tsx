@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { urls, type UrlEntry } from "@/lib/api";
 import Link from "next/link";
@@ -87,6 +87,14 @@ function IconCheck() {
   );
 }
 
+function IconSparkles() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8" />
+    </svg>
+  );
+}
+
 function IconArrowRight() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -112,6 +120,13 @@ const FEATURES = [
     body: "Pick your own short code — /my-brand instead of a random string.",
     color: "text-blue-400",
     bg: "bg-blue-400/10",
+  },
+  {
+    icon: <IconSparkles />,
+    title: "Gemini-powered suggestions",
+    body: "As you paste a URL, Gemini 2.5 Flash suggests memorable slugs based on the destination — sign in to use one instantly.",
+    color: "text-violet-400",
+    bg: "bg-violet-400/10",
   },
   {
     icon: <IconClock />,
@@ -171,19 +186,56 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  async function handleShorten(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  // Gemini-powered slug suggestions, debounced off the URL input.
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const suggestRequestId = useRef(0);
+
+  useEffect(() => {
+    setSuggestions([]);
+
+    let candidateUrl: URL;
+    try {
+      candidateUrl = new URL(input);
+    } catch {
+      return; // not a parseable URL yet — don't call Gemini on every keystroke
+    }
+    if (!/^https?:$/.test(candidateUrl.protocol)) return;
+
+    const requestId = ++suggestRequestId.current;
+    setSuggestLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const { suggestions: ideas } = await urls.suggestCode(input);
+        if (suggestRequestId.current === requestId) setSuggestions(ideas);
+      } catch {
+        // Gemini being unavailable is never user-facing here — suggestions just stay empty.
+      } finally {
+        if (suggestRequestId.current === requestId) setSuggestLoading(false);
+      }
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, [input]);
+
+  async function shorten(customCode?: string) {
     setError("");
     setResult(null);
     setLoading(true);
     try {
-      const entry = await urls.shorten({ originalUrl: input }, user?.token);
+      const entry = await urls.shorten({ originalUrl: input, customCode }, user?.token);
       setResult(entry);
+      setSuggestions([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleShorten(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    await shorten();
   }
 
   function copyToClipboard(text: string) {
@@ -234,6 +286,37 @@ export default function HomePage() {
               {loading ? "Shortening…" : "Shorten URL"}
             </button>
           </form>
+
+          {/* Gemini-powered slug suggestions */}
+          {!result && (suggestLoading || suggestions.length > 0) && (
+            <div className="mt-3 max-w-xl mx-auto text-left">
+              <div className="flex items-center gap-1.5 text-xs text-violet-400 mb-2">
+                <IconSparkles />
+                {suggestLoading ? "Asking Gemini for slug ideas…" : "Gemini suggestions"}
+              </div>
+              {suggestions.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {suggestions.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      disabled={!user || loading}
+                      title={user ? `Shorten with /${s}` : "Sign in to use a custom slug"}
+                      onClick={() => shorten(s)}
+                      className="font-mono text-xs bg-violet-400/10 border border-violet-400/20 text-violet-300 hover:bg-violet-400/20 disabled:opacity-50 disabled:hover:bg-violet-400/10 px-3 py-1.5 rounded-full transition-colors"
+                    >
+                      /{s}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {!user && suggestions.length > 0 && (
+                <p className="mt-2 text-xs text-zinc-500">
+                  <Link href="/register" className="text-blue-400 hover:text-blue-300">Sign in</Link> to shorten with one of these instead of a random code.
+                </p>
+              )}
+            </div>
+          )}
 
           {error && (
             <p className="mt-3 text-sm text-red-400 text-left max-w-xl mx-auto">{error}</p>

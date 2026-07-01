@@ -1,5 +1,6 @@
 package com.urlshortner.controller;
 
+import com.urlshortner.service.LatencyTrackingService;
 import com.urlshortner.service.UrlService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -15,6 +16,7 @@ import java.net.URI;
 public class RedirectController {
 
     private final UrlService urlService;
+    private final LatencyTrackingService latencyTrackingService;
 
     /**
      * Core redirect. Uses 302 (temporary) so browsers don't cache the destination —
@@ -22,7 +24,10 @@ public class RedirectController {
      */
     @GetMapping("/{code}")
     public ResponseEntity<Void> redirect(@PathVariable String code) {
+        long start = System.nanoTime();
         String destination = urlService.resolve(code);
+        latencyTrackingService.record(code, (System.nanoTime() - start) / 1_000_000);
+
         return ResponseEntity.status(HttpStatus.FOUND)
                 .location(URI.create(destination))
                 .build();

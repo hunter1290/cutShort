@@ -33,6 +33,7 @@ Key environment variables (see `application.yml` for full list and defaults):
 | `JWT_SECRET` | HMAC signing key for JWTs (must be ≥256 bits) |
 | `BASE_URL` | Public base URL used to build `shortUrl` in responses |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_DISPLAY_NAME` | Seed credentials for the bootstrap admin account (see below) |
+| `GEMINI_API_KEY` | Optional. Enables the Gemini AI layer (latency insight + code suggestions) — see below |
 
 ## Auth
 
@@ -86,6 +87,33 @@ admin can promote other registered users via `POST /api/admin/users/{id}/promote
 - **Ownership**: mutating endpoints (`delete`, `extend`, `customize`) verify the caller owns
   the link (`ownedUrl()`), independent of the route-level auth check.
 
+## AI layer (Gemini)
+
+Two independent, optional features built on Gemini 2.5 Flash. Both degrade gracefully —
+no key configured means no errors, just empty/"unavailable" responses.
+
+`gemini/GeminiClient.java` is the only thing that talks to Google: a raw REST call to
+`{app.gemini.base-url}/models/{app.gemini.model}:generateContent` authenticated with the
+`X-goog-api-key` header (not the `?key=` query param). Configure via `GEMINI_API_KEY`,
+`app.gemini.base-url`, `app.gemini.model` in `application.yml`.
+
+**Redirect latency insight** (`service/LatencyTrackingService.java` + `LatencyInsightService.java`)
+- Every redirect (`RedirectController`) times its own `UrlService.resolve()` call and records
+  the latency into an in-memory 500-sample ring buffer — no DB writes, no Gemini call, on the
+  hot path.
+- `GET /api/admin/latency-insight` (admin-only, on-demand — not polled/scheduled) computes
+  avg/min/max/p95 from the buffer and asks Gemini for a 2-3 sentence health summary, flagging
+  anything that looks like an anomaly.
+
+**AI short-code suggestions** (`service/CodeSuggestionService.java`)
+- `POST /api/urls/suggest-code` (public — same visibility as `/shorten`) takes a destination
+  URL and asks Gemini (JSON response mode) for up to 3 short, memorable, URL-safe slugs based
+  on it. Suggestions are filtered against the code-format regex and current DB availability
+  before being returned, so every suggestion is guaranteed usable at the moment it's shown.
+- Purely additive — it does not change how `UrlService` generates the actual random short
+  code; the frontend calls `/shorten` with the chosen suggestion as `customCode` if the caller
+  wants to use one (which still requires auth, per the existing custom-code rule above).
+
 ## API reference
 
 All request/response bodies are JSON. Errors are `{ "error": "<message>" }` with a status
@@ -104,6 +132,7 @@ from `AppException` (400/401/403/404/409).
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | POST | `/shorten` | public* | Body: `{ originalUrl, customCode?, expiresAt? }`. `customCode`/`expiresAt` require auth (403 otherwise). Returns `UrlResponse`. |
+| POST | `/suggest-code` | public | Body: `{ originalUrl }`. Returns `{ suggestions: string[] }` — up to 3 Gemini-suggested, available short codes. Empty list if Gemini is unconfigured or fails. |
 | GET | `` | user | List the caller's own active links. |
 | DELETE | `/{code}` | user, owner | Soft-delete an owned link. |
 | PATCH | `/{code}/extend` | user, owner | Body: `{ days }`. Pushes `expiresAt` out by `days` from the later of now/current expiry. |
@@ -126,6 +155,7 @@ from `AppException` (400/401/403/404/409).
 | GET | `/users/{id}` | Full detail for one user: the summary fields plus `urls[]` (every link they've created, including soft-deleted ones, as `UrlResponse`). |
 | DELETE | `/users/{id}` | Permanently deletes the user and cascades to their links (`User.urls` is `CascadeType.ALL, orphanRemoval = true`). 403 if `id` is the caller's own account — admins can't delete themselves through this endpoint. |
 | POST | `/users/{id}/promote` | Grants `ADMIN` to the target user. Returns the updated summary. |
+| GET | `/latency-insight` | Gemini-generated redirect latency summary. Returns `{ stats: { sampleCount, avgMs, minMs, maxMs, p95Ms }, aiSummary }`. |
 
 ## Data model
 

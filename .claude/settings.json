@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(mkdir -p /Users/tushar/Desktop/Project/urlShortner/backend/src/main/java/com/urlshortner/gemini)"
+    ],
+    "additionalDirectories": [
+      "/Users/tushar/Desktop/Project/urlShortner/backend/src/main/java/com/urlshortner"
     ]
   }
 }

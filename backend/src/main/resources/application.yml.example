@@ -29,3 +29,9 @@ app:
     email: ${ADMIN_EMAIL:admin@example.com}
     password: ${ADMIN_PASSWORD:replace-with-a-real-password}
     display-name: ${ADMIN_DISPLAY_NAME:Admin}
+  gemini:
+    # Latency insight (admin dashboard) + AI short-code suggestions are both no-ops
+    # when this is blank — no key needed for the rest of the app to run.
+    api-key: ${GEMINI_API_KEY:}
+    base-url: https://generativelanguage.googleapis.com/v1beta
+    model: gemini-2.5-flash
