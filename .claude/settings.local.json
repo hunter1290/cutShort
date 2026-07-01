@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest frontend --typescript --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --yes)",
+      "Bash(find /opt /usr /Library ~/Library -name \"mvn\" -type f 2>/dev/null | head -5; ls /Users/tushar/Desktop/Project/urlShortner/backend/.mvn 2>/dev/null || echo \"no .mvn wrapper\")",
+      "Read(//opt/**)"
+    ]
+  }
+}
