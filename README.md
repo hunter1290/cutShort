@@ -127,3 +127,4 @@ urlShortner/
 - The backend reads env vars with fallback defaults, so the app runs without a `.env` file in local dev (using the defaults from `application.yml`).
 - JWT tokens expire after **24 hours**.
 - Authenticated requests require the header: `Authorization: Bearer <token>`
+# CutShort
